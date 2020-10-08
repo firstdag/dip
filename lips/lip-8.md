@@ -16,9 +16,17 @@ An extension of the Off-Chain protocol to provide support for more advanced merc
 ---
 
 Version 0 of the Off-Chain Protocol is described in [LIP 1](https://lip.libra.org/lip-1/).  Version 1 as described here is an extension of the Off-Chain Protocol and adds features to support more advanced functionality - particularly targeted to support merchant use-cases.  This is inclusive of pull payments, recurring payments, and auth/capture flows.
-This LIP does not contain the initial phase of the sub account discovery that is required to start nagotioating merchant scenarios. for the discovery phase, there are currenctly two leading methods:
-  1. QR/deeplinks - where the consumer provides his VASP the merchant's relevant details by scanning the QR/pressing the link in the checkout page
-  2. Pay ID - Where the consumer provides to the merchant his Libra identifier for the relevant sub-account and VASP
+
+---
+# Disclaimer
+---
+
+This LIP does not contain the initial phase of the sub account discovery that is required to start nagotioating merchant scenarios.
+The process describe below starts at the phase that both sides (particualary the biller side) have the relevant subaddresses. 
+For the discovery phase, there are currenctly two leading methods:
+  1. The buyer VASP triger the process with pre-knowledge of the merchant subaddress. e.g., QR/deeplinks - where the consumers while acting in their wallet provides their VASP the merchant's relevant details (embedded in the QR/link in the checkout page)
+  2. The merchant gets the user identifier (like Pay ID) and query the buyer side for a new subaddress for this process
+For now we will assume that one of these methods took place and the merchant have the buyer subaddress at hand.
   
 ---
 # Specification
@@ -112,8 +120,7 @@ The structure in this object can be a full pre-approval or just the fields of an
 | biller_address | str | Required for creation | Address of account from which billing will happen. Addresses may be single use or valid for a limited time, and therefore VASPs should not rely on them remaining stable across time or different VASP addresses. The addresses are encoded using bech32. The bech32 address encodes both the address of the VASP as well as the specific user's subaddress. They should be no longer than 80 characters. Mandatory and immutable. For Libra addresses, refer to "account identifier" section in LIP-5 for format. |
 | expiration_timestamp | uint | N | Unix timestamp indicating the time at which this pre-approval will expire - after which no funds pulls can occur.  To expire an existing pre-approval early, this field can be updated with the current unix timestamp. |
 | funds_pre_approval_id | str | Y | Unique reference ID of this pre-approval on the pre-approval initiator VASP (the VASP which originally created this pre-approval object). This value should be unique, and formatted as “<creator_vasp_onchain_address_bech32>_<unique_id>”.  For example, ”lbr1pg9q5zs2pg9q5zs2pg9q5zs2pgyqqqqqqqqqqqqqqspa3m_7b8404c986f53fe072301fe950d030de“. Note that this should be the VASP address and thus have a subaddress portion of 0. This field is mandatory on pre-approval creation and immutable after that.  Updates to an existing pre-approval must also include the previously created pre-approval ID. |
-| max_cumulative_amount | [CurrencyObject](#currencyobject) | N | Max cumulative amount that is approved for funds pre-approval.  This is the sum across all transactions that occur while utilizing this funds pre-approval. |
-| Max_transaction_amount | [CurrencyObject](#currencyobject) | N | Max transaction amount that is approved for funds pre-approval.  This is the maximum transaction that occur while utilizing this funds pre-approval. |
+| scope | [ScopeObject](#scopeobject) | N | Max cumulative amount that is approved for funds pre-approval.  This is the sum across all transactions that occur while utilizing this funds pre-approval. |
 | description | str | N | Description of the funds pre-approval.  May be utilized so show the user a description about the request for funds pre-approval |
 | status | str enum | N | Status of this pre-approval. See [Pre-Approval Status Enum](#pre-approval-status-enum) for valid statuses. 
 
@@ -129,9 +136,28 @@ The structure in this object can be a full pre-approval or just the fields of an
 }
 ```
 
-### CurrencyObject
+### ScopeObject
 
 Represents an amount and the currency type.
+
+| Field 	    | Type 	| Required? 	| Description 	|
+|-------	    |------	|-----------	|-------------	|
+| max_cumulative_amount | [CurrencyObject](#currencyobject) | N | ax cumulative amount that is approved for funds pre-approval.  This is the sum across all transactions that occur while utilizing this funds pre-approval. |
+| max_transaction_amount | [CurrencyObject](#currencyobject) | N | Max transaction amount that is approved for funds pre-approval.  This is the maximum transaction that occur while utilizing this funds pre-approval. |
+
+```
+{
+    "max_transaction_amount": {
+        "amount": 100,
+        "currency": "LBR",
+    }
+}
+```
+
+
+### CurrencyObject
+
+Represents a limited scope for the approval.
 
 | Field 	    | Type 	| Required? 	| Description 	|
 |-------	    |------	|-----------	|-------------	|
