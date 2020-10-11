@@ -21,10 +21,10 @@ Version 0 of the Off-Chain Protocol is described in [LIP 1](https://lip.libra.or
 # Disclaimer
 ---
 
-This LIP does not contain the initial phase of the sub account discovery that is required to start nagotioating merchant scenarios.
+This LIP does not contain the initial phase of a sub account discovery that is required to start nagotioating merchant scenarios.
 The process describe below starts at the phase that both sides (particualary the biller side) have the relevant subaddresses. 
 For the discovery phase, there are currenctly two leading methods:
-  1. The buyer VASP triger the process with pre-knowledge of the merchant subaddress. e.g., QR/deeplinks - where the consumers while acting in their wallet provides their VASP the merchant's relevant details (embedded in the QR/link in the checkout page)
+  1. The buyer VASP triger a process with pre-knowledge of the merchant subaddress. e.g., QR/deeplinks - where the consumers while acting in their wallet provides their VASP the merchant's relevant details (embedded in the QR/link in the checkout page)
   2. The merchant gets the user identifier (like Pay ID) and query the buyer side for a new subaddress for this process
 For now we will assume that one of these methods took place and the merchant have the buyer subaddress at hand.
   
@@ -54,11 +54,17 @@ All requests between VASPs are structured as [`CommandRequestObject`s](https://l
         "fund_pull_pre_approval": {
             "address": "lbr1pgfpyysjzgfpyysjzgfpyysjzgf3xycnzvf3xycsm957ne",
             "biller_address": "lbr1pg9q5zs2pg9q5zs2pg9q5zs2pg9skzctpv9skzcg9kmwta",
-            "funds_pre_approval_id": "lbr1pg9q5zs2pg9q5zs2pg9q5zs2pgyqqqqqqqqqqqqqqspa3m_7b8404c986f53fe072301fe950d030de"
-            "expiration_timestamp": 72322, 
-            "max_cumulative_amount": {
-                "amount": 1000,
-                "currency": "LBR"
+            "funds_pre_approval_id": "lbr1pg9q5zs2pg9q5zs2pg9q5zs2pgyqqqqqqqqqqqqqqspa3m_7b8404c986f53fe072301fe950d030de",
+            "scope": {
+                "expiration_timestamp": 72322, 
+                "max_cumulative_amount": {
+                    "unit": "week",
+                    "value": 1,
+                    "max_amount": {
+                        "amount": 100,
+                        "currency": "LBR",
+                    }
+                }
             }
             "description": "Kevin's online shop",
             "status": "pending",
@@ -137,27 +143,56 @@ The structure in this object can be a full pre-approval or just the fields of an
 
 ### ScopeObject
 
-In this object the initiator VASP will declare its intent for the pre-approval, this can by one of two options:
-  1. Save the consumer sub-account for future transactions (Save_sub_account)- this will enable the initiator VASP (merchant) to charge the sub-account in the future but will require the owner to approve the transaction. in this option, amount limits are not required.
-  2. Save the consumer sub-account and get consent for future payments (Consent) - this will ebable the initiator VASP (merchant) to charge the sub-account without any interaction with the owner. 
-In addition, the scope limits the FundPullPreApprovalObject to certain parameters of time and amount. this object can be changed by the initiator VASP if needed, any change will require the target VASP to approve the change of scope.
+In this object the initiator VASP declares its intent for the pre-approval, this can by one of two options:
+  1. Save the consumer sub-account for future transactions (save_sub_account)- this will enable the initiator VASP (merchant) to charge the sub-account in the future but will require the owner to approve the transaction. When using this option, amount limits are not required
+  2. Save the consumer sub-account and get a consent for future payments (Consent) - this enables the initiator VASP (merchant) to charge the sub-account without any interaction with the owner. 
+In addition, the scope limits the FundPullPreApprovalObject to certain parameters of time and amount. this object can be changed by the initiator VASP if needed, but any change requires the target VASP to approve the scope change.
 
 
 | Field 	    | Type 	| Required? 	| Description 	|
 |-------	    |------	|-----------	|-------------	|
-| Type | ? | Y | Tech definition. This can be either Save_sub_account or Consent. |
+| Type | ? | Y | Tech definition. This can be either save_sub_account or consent |
 | expiration_timestamp | uint | Y | Unix timestamp indicating the time at which this pre-approval will expire - after which no funds pulls can occur.  To expire an existing pre-approval early, this field can be updated with the current unix timestamp. |
-| max_cumulative_amount | [CurrencyObject](#currencyobject) | N | ax cumulative amount that is approved for funds pre-approval.  This is the sum across all transactions that occur while utilizing this funds pre-approval. |
+| max_cumulative_amount | [ScopedCumulativeAmountObject](#scopedcumulativeamountobject) | N | Max cumulative amount that is approved for funds pre-approval.  This is the sum across all transactions that occur while utilizing this funds pre-approval. |
 | max_transaction_amount | [CurrencyObject](#currencyobject) | N | Max transaction amount that is approved for funds pre-approval.  This is the maximum transaction that occur while utilizing this funds pre-approval. |
 
 ```
 {
-    "max_transaction_amount": {
-        "amount": 100,
-        "currency": "LBR",
+    "scope": {
+        "type": "consent",
+        "expiration_timestamp": 72322,
+        "max_transaction_amount": {
+            "amount": 100,
+            "currency": "LBR",
+        }
     }
 }
 ```
+
+### ScopedCumulativeAmountObject
+
+This object describes a scope of an amount
+
+| Field 	    | Type 	     | Required? 	| Description 	|
+|-------	    |-------- 	 |-----------	|-------------	|
+| unit          | str enum   | N            | One of: "week", "month", "year" |
+| value         | int        | N            | "Unit" value  |
+| max_amount | [CurrencyObject](#currencyobject) | N | Max cumulative amount that is approved for funds pre-approval.  This is the sum across all transactions that occur in the scope of the unit value. |
+
+```
+{
+    "max_cumulative_amount": {
+        "unit": "month",
+        "value": 1,
+        "max_amount": {
+            "amount": 100,
+            "currency": "LBR",
+        }
+    }
+}
+```
+
+
 
 ### CurrencyObject
 
@@ -209,11 +244,11 @@ In addition, the "_reads" field of the PaymentObject must contain the latest ver
 
 Authorization allows the placing of holds on funds with the assurance that an amount up to the held amount can be captured at a later time.  An example of this is for delayed fulfillment or pre-authorizing an expected amount to ensure that an amount can be charged after services are rendered.
 
-When an authorization happens, the VASP agreeing to the authorization must lock the funds for the specified amount of time - the VASP is agreeing to a guarantee that the funds will be available if later captured.
+When an authorization happens, the sender VASP (buyer) agrees to the authorization request must lock the funds for the specified period of time. That is - the buyer VASP guarantees that the funds will be available if later captured.
 
 Auth/capture is an extension of [PaymentCommand](https://lip.libra.org/lip-1/#paymentcommand-object).  The extension happens primarily within the [PaymentActionObject](https://lip.libra.org/lip-1/#paymentactionobject) and the status changes within the [PaymentActor](https://lip.libra.org/lip-1/#paymentactorobject).
 
-Authorization is granted by the consumer VASP and can only be revoked by the merchant. Authorizations are expected to have a shorter expiration than Fund Pull Pre-Approvals as they serve for a single payment.
+Authorization is granted by the consumer/buyer VASP and can only be revoked by the merchant. Authorizations are expected to have a shorter expiration time than Fund Pull Pre-Approvals as they serve for a single payment.
 
 ### PaymentActionObject Extension
 
@@ -245,4 +280,12 @@ The auth/capture flow now adds the following to the status enum of [PaymentActor
 
 `abort` may still be used to cancel the authorization early.  Once a capture action occurs, the status of the payment will now be updated to `ready_for_settlement`.
 
-**Valid Status Transitions**. `authorized` is now a valid initial value and may be followed by `ready_for_settlement` (upon a successful capture) or `abort` (if one side wishes to cancel the auth).
+**Valid Status Transitions**. `authorized` is now a valid initial value and may be followed by `ready_for_settlement` (upon a successful capture) or `abort` (if a valid cancel request was sent).
+
+## Cancellation
+
+This LIP describes two independent phases of a payment - pre approval and auth/capture.
+
+The first one (pre approval) may be canceled by each side (buyer or seller). a reasonable scenario is when a consumer wishes to cancel a subscription (buyer cancel), or asks a merchant app to remove the user wallet from the list of payment methods (seller cancel). 
+
+The second (authorization) could be cancel only by the biller (merchant) as it hold a guarantee to get funds if requested. This has no reason to be canceled by the buyer. a request for such a cancellation from the buyer should be rejected. 
