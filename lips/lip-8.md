@@ -145,13 +145,13 @@ The structure in this object can be a full pre-approval or just the fields of an
 
 In this object the initiator VASP declares its intent for the pre-approval, this can by one of two options:
   1. Save the consumer sub-account for future transactions (save_sub_account)- this will enable the initiator VASP (merchant) to charge the sub-account in the future but will require the owner to approve the transaction. When using this option, amount limits are not required
-  2. Save the consumer sub-account and get a consent for future payments (Consent) - this enables the initiator VASP (merchant) to charge the sub-account without any interaction with the owner. 
+  2. Save the consumer sub-account and get a consent for future payments (consent) - this enables the initiator VASP (merchant) to charge the sub-account without any interaction with the owner. 
 Also, the scope limits the FundPullPreApprovalObject to certain parameters of time and amount. this object can be changed by the initiator VASP if needed, but any change requires the target VASP to approve the scope change.
 
 
 | Field         | Type  | Required?     | Description   |
 |-------        |------ |-----------    |-------------  |
-| Type | ? | Y | Tech definition. This can be either save_sub_account or consent |
+| Type | str enum | Y | This can be either save_sub_account or consent |
 | expiration_timestamp | uint | Y | Unix timestamp indicating the time at which this pre-approval will expire - after which no funds pull can occur.  To expire an existing pre-approval early, this field can be updated with the current Unix timestamp. |
 | max_cumulative_amount | [ScopedCumulativeAmountObject](#scopedcumulativeamountobject) | N | Max cumulative amount that is approved for funds pre-approval.  This is the sum across all transactions that occur while utilizing this pre-approval. |
 | max_transaction_amount | [CurrencyObject](#currencyobject) | N | Max transaction amount that is approved for funds pre-approval.  This is the maximum transaction that occurs while utilizing this funds pre-approval. |
