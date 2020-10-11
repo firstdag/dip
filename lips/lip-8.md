@@ -118,9 +118,8 @@ The structure in this object can be a full pre-approval or just the fields of an
 |-------	    |------	|-----------	|-------------	|
 | address | str | Required for creation | Address of account from which the pre-approval is being requested. Addresses may be single use or valid for a limited time, and therefore VASPs should not rely on them remaining stable across time or different VASP addresses. The addresses are encoded using bech32. The bech32 address encodes both the address of the VASP as well as the specific user's subaddress. They should be no longer than 80 characters. Mandatory and immutable. For Libra addresses, refer to "account identifier" section in LIP-5 for format. |
 | biller_address | str | Required for creation | Address of account from which billing will happen. Addresses may be single use or valid for a limited time, and therefore VASPs should not rely on them remaining stable across time or different VASP addresses. The addresses are encoded using bech32. The bech32 address encodes both the address of the VASP as well as the specific user's subaddress. They should be no longer than 80 characters. Mandatory and immutable. For Libra addresses, refer to "account identifier" section in LIP-5 for format. |
-| expiration_timestamp | uint | N | Unix timestamp indicating the time at which this pre-approval will expire - after which no funds pulls can occur.  To expire an existing pre-approval early, this field can be updated with the current unix timestamp. |
 | funds_pre_approval_id | str | Y | Unique reference ID of this pre-approval on the pre-approval initiator VASP (the VASP which originally created this pre-approval object). This value should be unique, and formatted as “<creator_vasp_onchain_address_bech32>_<unique_id>”.  For example, ”lbr1pg9q5zs2pg9q5zs2pg9q5zs2pgyqqqqqqqqqqqqqqspa3m_7b8404c986f53fe072301fe950d030de“. Note that this should be the VASP address and thus have a subaddress portion of 0. This field is mandatory on pre-approval creation and immutable after that.  Updates to an existing pre-approval must also include the previously created pre-approval ID. |
-| scope | [ScopeObject](#scopeobject) | N | Max cumulative amount that is approved for funds pre-approval.  This is the sum across all transactions that occur while utilizing this funds pre-approval. |
+| scope | [ScopeObject](#scopeobject) | Y | Technical definition. The parameters of the pre-approval, this contains the expiration time, and the amount limits |
 | description | str | N | Description of the funds pre-approval.  May be utilized so show the user a description about the request for funds pre-approval |
 | status | str enum | N | Status of this pre-approval. See [Pre-Approval Status Enum](#pre-approval-status-enum) for valid statuses. 
 
@@ -138,10 +137,16 @@ The structure in this object can be a full pre-approval or just the fields of an
 
 ### ScopeObject
 
-Represents an amount and the currency type.
+In this object the initiator VASP will declare its intent for the pre-approval, this can by one of two options:
+  1. Save the consumer sub-account for future transactions (Save_sub_account)- this will enable the initiator VASP (merchant) to charge the sub-account in the future but will require the owner to approve the transaction. in this option, amount limits are not required.
+  2. Save the consumer sub-account and get consent for future payments (Consent) - this will ebable the initiator VASP (merchant) to charge the sub-account without any interaction with the owner. 
+In addition, the scope limits the FundPullPreApprovalObject to certain parameters of time and amount. this object can be changed by the initiator VASP if needed, any change will require the target VASP to approve the change of scope.
+
 
 | Field 	    | Type 	| Required? 	| Description 	|
 |-------	    |------	|-----------	|-------------	|
+| Type | ? | Y | Tech definition. This can be either Save_sub_account or Consent. |
+| expiration_timestamp | uint | Y | Unix timestamp indicating the time at which this pre-approval will expire - after which no funds pulls can occur.  To expire an existing pre-approval early, this field can be updated with the current unix timestamp. |
 | max_cumulative_amount | [CurrencyObject](#currencyobject) | N | ax cumulative amount that is approved for funds pre-approval.  This is the sum across all transactions that occur while utilizing this funds pre-approval. |
 | max_transaction_amount | [CurrencyObject](#currencyobject) | N | Max transaction amount that is approved for funds pre-approval.  This is the maximum transaction that occur while utilizing this funds pre-approval. |
 
@@ -154,10 +159,9 @@ Represents an amount and the currency type.
 }
 ```
 
-
 ### CurrencyObject
 
-Represents a limited scope for the approval.
+Represents a limited scope for the approval. 
 
 | Field 	    | Type 	| Required? 	| Description 	|
 |-------	    |------	|-----------	|-------------	|
