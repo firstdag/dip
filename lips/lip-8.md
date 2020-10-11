@@ -21,12 +21,12 @@ Version 0 of the Off-Chain Protocol is described in [LIP 1](https://lip.libra.or
 # Disclaimer
 ---
 
-This LIP does not contain the initial phase of a sub-account discovery that is required to start negotiating merchant scenarios.
-The process describes below starts at the phase that both sides (particularly the biller side) have the relevant subaddresses. 
-For the discovery phase, there are currently two leading methods:
-  1. The buyer VASP triggers a process with pre-knowledge of the merchant subaddress. e.g., QR/deep links - where the consumers while acting in their wallet provides their VASP the merchant's relevant details (embedded in the QR/link in the checkout page)
+This LIP does not address the initial phase of a sub-account discovery required for most merchant scenarios.
+The process described below assumes both sides have the relevant subaddresses (particularly the biller side). 
+For the discovery phase, several solutions are being contemplated, including:
+  1. The buyer VASP triggers a process with pre-knowledge of the merchant subaddress. e.g., QR/deep links - where the consumers, while acting in their wallet, provide their VASP the merchant's relevant details (embedded in the QR/link in the checkout page)
   2. The merchant gets the user identifier (like Pay ID) and query the buyer side for a new subaddress for this process
-For now, we will assume that one of these methods took place and the merchant have the buyer subaddress at hand.
+For now, we will assume that one of these methods is used, and the merchant has the buyer subaddress at hand.
   
 ---
 # Specification
